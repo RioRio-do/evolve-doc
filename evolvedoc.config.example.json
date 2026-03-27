@@ -1,0 +1,26 @@
+{
+  "adapters": {
+    "claude": {
+      "type": "claude-agent",
+      "defaultModel": "claude-sonnet-4-20250514",
+      "allowedTools": []
+    },
+    "codex": {
+      "type": "codex-sdk",
+      "defaultModel": "gpt-5.4",
+      "persistThread": false,
+      "skipGitRepoCheck": true
+    },
+    "local": {
+      "type": "openai-compat",
+      "baseUrl": "http://localhost:11434/v1",
+      "apiKeyEnvVar": "OLLAMA_API_KEY",
+      "defaultModel": "llama3.3"
+    },
+    "openai": {
+      "type": "openai-compat",
+      "apiKeyEnvVar": "OPENAI_API_KEY",
+      "defaultModel": "gpt-4.1"
+    }
+  }
+}

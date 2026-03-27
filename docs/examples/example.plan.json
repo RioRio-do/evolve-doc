@@ -1,0 +1,13 @@
+{
+  "name": "spec-review",
+  "inputFile": "./docs/examples/sample-input.md",
+  "outputFile": "./docs/examples/sample-output.md",
+  "triggerPrompt": "以下の仕様書ドキュメントを作成しました。これをベースに作業を続けます。",
+  "saveIntermediates": false,
+  "steps": [
+    {
+      "adapterId": "openai",
+      "prompt": "この文書を簡潔に要約してください。"
+    }
+  ]
+}
