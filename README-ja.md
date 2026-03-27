@@ -114,10 +114,12 @@ Claude Agent SDK の `query` で実行。例:
 ```json
 {
   "type": "claude-agent",
-  "defaultModel": "claude-sonnet-4-20250514",
+  "defaultModel": "claude-sonnet-4-6",
   "allowedTools": []
 }
 ```
+
+任意の **`cliPath`**: Claude Code 実行ファイルのパス（SDK の `pathToClaudeCodeExecutable` に渡る）。
 
 **`allowedTools`: `[]`** でツールを使わないテキスト寄りの動作にできます。Anthropic の SDK に従い、Claude Code / API などの認証が必要です。
 
@@ -128,7 +130,7 @@ Claude Agent SDK の `query` で実行。例:
   "type": "codex-sdk",
   "defaultModel": "gpt-5.4",
   "persistThread": false,
-  "skipGitRepoCheck": true
+  "skipGitRepoCheck": false
 }
 ```
 
@@ -137,7 +139,7 @@ Claude Agent SDK の `query` で実行。例:
 
 #### `openai-compat`（OpenAI 互換 Chat Completions）
 
-OpenAI 本番や、**`/v1/chat/completions`** 互換のローカル・他社 API に接続:
+**`chat.completions.create` のみ**を呼び出す。**Anthropic Messages API** には非対応。Claude を使う場合は **`claude-agent`** を使うこと。OpenAI 本番や、**`/v1/chat/completions`** 互換のローカル・他社 API に接続できる:
 
 ```json
 {
@@ -173,7 +175,10 @@ Ollama 等の例:
 | `outputFile` | 最終出力のパス |
 | `triggerPrompt` | 任意。注入前 user メッセージを上書き |
 | `saveIntermediates` | `true` のとき、`outputKey` 付きステップごとに `outputFile.<outputKey>.md` を保存 |
-| `steps` | `{ adapterId, prompt, model?, outputKey? }` の配列 |
+| `maxSteps` | 任意。`steps` の先頭から最大 N ステップだけ実行する（進化ループ上限） |
+| `maxTokens` | 任意の既定値。OpenAI 互換アダプターの `max_tokens`（ステップ側の指定が優先） |
+| `maxAgentTurns` | 任意の既定値。**`claude-agent`** の SDK `maxTurns`（ステップ側が優先） |
+| `steps` | `{ adapterId, prompt, model?, outputKey?, maxTokens?, maxAgentTurns? }` の配列 |
 
 **`adapterId`** は `evolvedoc.config.json` の `adapters` のキーと一致させます。
 

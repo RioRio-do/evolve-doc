@@ -5,6 +5,7 @@ node_modules
 out
 dist
 test/tmp-evolve
+test/tmp-loader
 *.tgz
 
 # code coverage

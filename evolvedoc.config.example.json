@@ -2,14 +2,14 @@
   "adapters": {
     "claude": {
       "type": "claude-agent",
-      "defaultModel": "claude-sonnet-4-20250514",
+      "defaultModel": "claude-sonnet-4-6",
       "allowedTools": []
     },
     "codex": {
       "type": "codex-sdk",
       "defaultModel": "gpt-5.4",
       "persistThread": false,
-      "skipGitRepoCheck": true
+      "skipGitRepoCheck": false
     },
     "local": {
       "type": "openai-compat",

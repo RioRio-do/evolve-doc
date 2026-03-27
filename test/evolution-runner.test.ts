@@ -41,4 +41,36 @@ describe("runEvolution", () => {
     const out = await readFile(outputFile, "utf8");
     expect(out).toContain("ECHO:step1");
   });
+
+  it("respects maxSteps", async () => {
+    const dir = join(dirname(fileURLToPath(import.meta.url)), "tmp-evolve");
+    await rm(dir, { recursive: true, force: true });
+    await mkdir(dir, { recursive: true });
+    const inputFile = join(dir, "in.md");
+    const outputFile = join(dir, "out.md");
+    await writeFile(inputFile, "# Hello", "utf8");
+
+    const registry = new AdapterRegistry();
+    registry.register("echo", new EchoAdapter());
+
+    await runEvolution(
+      {
+        name: "test",
+        inputFile,
+        outputFile,
+        triggerPrompt: "t",
+        maxSteps: 1,
+        steps: [
+          { adapterId: "echo", prompt: "first" },
+          { adapterId: "echo", prompt: "second" },
+        ],
+      },
+      registry,
+      { log: () => {} }
+    );
+
+    const out = await readFile(outputFile, "utf8");
+    expect(out).toContain("ECHO:first");
+    expect(out).not.toContain("ECHO:second");
+  });
 });

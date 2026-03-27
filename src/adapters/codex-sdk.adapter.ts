@@ -60,6 +60,11 @@ export class CodexSDKAdapter implements LLMAdapter {
     };
   }
 
+  /**
+   * Clears the in-memory thread id. The Codex SDK persists threads under
+   * `~/.codex/sessions`; this project does not delete those files because the
+   * public TypeScript SDK does not expose a session-delete API.
+   */
   async dispose(): Promise<void> {
     this.threadId = undefined;
   }

@@ -128,7 +128,7 @@ EvolveDoc の注入:
 
 | コンポーネント | 役割 |
 |---|---|
-| `DocumentLoader` | ファイル読み込み・フォーマット正規化（Markdown / plaintext / JSON） |
+| `DocumentLoader` | ファイル読み込み・正規化（Markdown は frontmatter 除去、JSON は parse 後に整形文字列化、その他は生テキスト） |
 | `InjectionEngine` | `assistant` ロールへの文書注入・会話履歴の構築 |
 | `EvolutionRunner` | エージェントループの実行・ステップ管理・出力収集 |
 | `AdapterRegistry` | アダプターの登録・解決・切り替え |
@@ -165,8 +165,8 @@ EvolveDoc の注入:
     "commander": "^14.x"    // CLI インターフェース
   },
   "devDependencies": {
-    "typescript": "^5.x",
-    "@types/node": "^20.x",
+    "typescript": "^6.x",
+    "@types/node": "^25.x",
     "vitest": "^4.x"        // テストフレームワーク
   }
 }
@@ -192,6 +192,7 @@ export interface RunOptions {
   messages: Message[];       // 注入済みの会話履歴
   systemPrompt?: string;     // システムプロンプト（任意）
   maxTokens?: number;        // 最大出力トークン数
+  maxAgentTurns?: number;    // Claude Agent SDK のみ: `maxTurns`（エージェントループ上限）。他アダプターでは無視
   model?: string;            // モデル名（アダプター既定値を上書き）
 }
 
@@ -258,13 +259,14 @@ export class ClaudeAgentAdapter implements LLMAdapter {
 export interface ClaudeAgentAdapterConfig {
   defaultModel?: string;       // 例: "claude-sonnet-4-6"
   allowedTools?: string[];     // 例: ["Read", "WebSearch"]
-  cliPath?: string;            // カスタム claude CLI パス（任意）
+  cliPath?: string;            // Claude Code 実行ファイルパス（SDK の pathToClaudeCodeExecutable にマップ）
 }
 ```
 
 #### 注意事項
 
-- Claude Agent SDK は内部で Claude Code CLI プロセスを spawn するため、`claude` コマンドが PATH に存在する必要がある
+- `cliPath` は実装で SDK の **`pathToClaudeCodeExecutable`** に渡される
+- Claude Agent SDK は内部で Claude Code CLI プロセスを spawn するため、`claude` コマンドが PATH に存在する必要がある（`cliPath` 指定時はそのパスを使用）
 - サブスクリプション利用時は、事前に `claude` コマンドでログイン済みであること
 - `allowedTools` を空配列にすると、ファイルシステムアクセスなし（テキスト専用）のモードで動作する
 - **Zod 4**: パッケージに `zod ^4` の peer があるため、プロジェクトの `zod` は 4.x とする
@@ -341,7 +343,7 @@ export interface CodexSDKAdapterConfig {
 #### 注意事項
 
 - サブスクリプション利用時は、事前に `codex` コマンドでログイン済みであること（`codex logout` → `codex` で切り替え可能）
-- Codex SDK はスレッドを `~/.codex/sessions` に保存するため、`persistThread: true` の場合は明示的な `dispose()` 呼び出しでクリーンアップすること
+- Codex SDK はスレッドを `~/.codex/sessions` に保存する。`persistThread: true` のとき **`dispose()`** でメモリ上のスレッド ID は解放するが、**ディスク上のセッションファイルの削除は公開 SDK に API がない**ため行わない（必要なら手動で `~/.codex/sessions` を保守する）
 - デフォルトモデルは `gpt-5.4`（現行の推奨モデル）
 
 ---
@@ -400,10 +402,11 @@ export interface OpenAICompatAdapterConfig {
 
 #### 対応プロバイダー例
 
+本アダプターは **OpenAI Chat Completions 互換**のエンドポイントのみを対象とする。**Anthropic Messages API**（`https://api.anthropic.com/...`）はリクエスト形式が異なるため、**Claude を使う場合は `claude-agent` アダプターを用いること。**
+
 | プロバイダー | baseUrl | 用途例 |
 |---|---|---|
 | OpenAI API | `https://api.openai.com/v1`（既定値） | GPT-5.4 等 |
-| Anthropic Messages API | `https://api.anthropic.com/v1` | claude-sonnet-4-6 等 |
 | Groq | `https://api.groq.com/openai/v1` | llama-3.3-70b 等 |
 | Ollama（ローカル） | `http://localhost:11434/v1` | llama3.3, mistral 等 |
 | LM Studio（ローカル） | `http://localhost:1234/v1` | ローカルモデル全般 |
@@ -496,6 +499,8 @@ export interface EvolutionStep {
   prompt: string;             // このステップで投げる user プロンプト
   model?: string;             // モデル名（アダプター既定値を上書き）
   outputKey?: string;         // 出力を保存する際のキー名
+  maxTokens?: number;         // OpenAI 互換: max_tokens（プラン既定を上書き）
+  maxAgentTurns?: number;     // claude-agent: SDK の maxTurns（プラン既定を上書き）
 }
 ```
 
@@ -509,6 +514,9 @@ export interface EvolutionPlan {
   triggerPrompt?: string;     // カスタムトリガープロンプト（任意）
   steps: EvolutionStep[];     // 実行するステップのリスト
   saveIntermediates?: boolean; // 中間出力を保存するか（デフォルト: false）
+  maxSteps?: number;          // 先頭から最大何ステップまで実行するか（任意）
+  maxTokens?: number;         // 既定の max_tokens（OpenAI 互換アダプター向け）
+  maxAgentTurns?: number;     // 既定の maxTurns（claude-agent 向け）
 }
 ```
 
@@ -533,8 +541,10 @@ export async function runEvolution(
 
   let lastOutput = document;
 
+  const steps = plan.maxSteps != null ? plan.steps.slice(0, plan.maxSteps) : plan.steps;
+
   // 3. ステップを順に実行
-  for (const step of plan.steps) {
+  for (const step of steps) {
     const adapter = registry.get(step.adapterId);
 
     console.log(`[EvolveDoc] Step: ${step.adapterId} / ${step.prompt.slice(0, 40)}...`);
@@ -542,10 +552,12 @@ export async function runEvolution(
     // user プロンプトを履歴に追加
     history.push({ role: "user", content: step.prompt });
 
-    // LLM に投げる
+    // LLM に投げる（maxTokens / maxAgentTurns はプランとステップでマージ）
     const result = await adapter.run({
       messages: history,
       model: step.model,
+      maxTokens: step.maxTokens ?? plan.maxTokens,
+      maxAgentTurns: step.maxAgentTurns ?? plan.maxAgentTurns,
     });
 
     lastOutput = result.content;

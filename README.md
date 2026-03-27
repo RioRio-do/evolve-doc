@@ -118,10 +118,12 @@ Runs via the Claude Agent SDK (`query`). Typical fields:
 ```json
 {
   "type": "claude-agent",
-  "defaultModel": "claude-sonnet-4-20250514",
+  "defaultModel": "claude-sonnet-4-6",
   "allowedTools": []
 }
 ```
+
+Optional **`cliPath`**: path to the Claude Code executable (mapped to the SDK’s `pathToClaudeCodeExecutable`).
 
 Use **`allowedTools`: `[]`** for text-only behavior without tool use. You need a working **Claude Code / Claude** CLI setup or API credentials as required by Anthropic’s SDK.
 
@@ -132,7 +134,7 @@ Use **`allowedTools`: `[]`** for text-only behavior without tool use. You need a
   "type": "codex-sdk",
   "defaultModel": "gpt-5.4",
   "persistThread": false,
-  "skipGitRepoCheck": true
+  "skipGitRepoCheck": false
 }
 ```
 
@@ -141,7 +143,7 @@ Use **`allowedTools`: `[]`** for text-only behavior without tool use. You need a
 
 #### `openai-compat` (OpenAI-compatible Chat Completions)
 
-Works with OpenAI’s API or any server that exposes a compatible **`/v1/chat/completions`** surface (Ollama, LM Studio, Groq, etc.):
+This adapter calls **`chat.completions.create`** only. It does **not** speak the **Anthropic Messages API**—for Claude, use **`claude-agent`**. It works with OpenAI’s API or any server that exposes a compatible **`/v1/chat/completions`** surface (Ollama, LM Studio, Groq, etc.):
 
 ```json
 {
@@ -177,7 +179,10 @@ A plan describes **one input file**, **one final output path**, optional **trigg
 | `outputFile` | Final Markdown/text path to write. |
 | `triggerPrompt` | Optional; overrides the default injection trigger. |
 | `saveIntermediates` | If `true`, writes `outputFile.<outputKey>.md` per step that defines `outputKey`. |
-| `steps` | Ordered list of `{ adapterId, prompt, model?, outputKey? }`. |
+| `maxSteps` | Optional; run only the first *N* steps of `steps` (caps the evolution loop). |
+| `maxTokens` | Optional default for OpenAI-compatible adapters (`max_tokens`); per-step values override. |
+| `maxAgentTurns` | Optional default for **`claude-agent`** (maps to the SDK’s `maxTurns`); per-step values override. |
+| `steps` | Ordered list of `{ adapterId, prompt, model?, outputKey?, maxTokens?, maxAgentTurns? }`. |
 
 **`adapterId`** must match a key under `adapters` in `evolvedoc.config.json`.
 

@@ -42,6 +42,10 @@ export const evolutionStepSchema = z.object({
   prompt: z.string(),
   model: z.string().optional(),
   outputKey: z.string().optional(),
+  /** Per-step cap on completion tokens (OpenAI compat). Claude: use `maxAgentTurns`. */
+  maxTokens: z.number().int().positive().optional(),
+  /** Claude Agent SDK only: passed as `maxTurns` for the agent loop. */
+  maxAgentTurns: z.number().int().positive().optional(),
 });
 
 export const evolutionPlanSchema = z.object({
@@ -50,6 +54,12 @@ export const evolutionPlanSchema = z.object({
   outputFile: z.string().min(1),
   triggerPrompt: z.string().optional(),
   saveIntermediates: z.boolean().optional(),
+  /** Run at most this many steps from `steps` (evolution loop cap). */
+  maxSteps: z.number().int().positive().optional(),
+  /** Default `max_tokens` for OpenAI-compatible adapters (per-step overrides win). */
+  maxTokens: z.number().int().positive().optional(),
+  /** Default max agent turns for Claude Agent adapter (per-step overrides win). */
+  maxAgentTurns: z.number().int().positive().optional(),
   steps: z.array(evolutionStepSchema).min(1),
 });
 

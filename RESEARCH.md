@@ -70,4 +70,10 @@
 
 ---
 
+## 8. devDependencies のバージョン
+
+- 仕様書 1.0 の依存表は `typescript ^6.x`、 `@types/node ^25.x`、 `vitest ^4.x` と、`package.json` の実ロックと一致させる（TypeScript 5 系固定の記述は廃止）。
+
+---
+
 *本調査は実装ロックファイル（`bun.lock`）と `package.json` の依存と併せて更新すること。*

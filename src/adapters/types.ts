@@ -6,7 +6,13 @@ export interface Message {
 export interface RunOptions {
   messages: Message[];
   systemPrompt?: string;
+  /** Passed to OpenAI Chat Completions `max_tokens` where supported. */
   maxTokens?: number;
+  /**
+   * Claude Agent SDK only: maps to `options.maxTurns` (agent loop cap).
+   * Ignored by other adapters.
+   */
+  maxAgentTurns?: number;
   model?: string;
 }
 

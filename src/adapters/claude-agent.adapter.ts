@@ -16,7 +16,7 @@ export class ClaudeAgentAdapter implements LLMAdapter {
   async run(options: RunOptions): Promise<RunResult> {
     const serializedHistory = serializeMessages(options.messages);
 
-    let finalText = "";
+    const resultChunks: string[] = [];
     for await (const message of query({
       prompt: serializedHistory,
       options: {
@@ -24,11 +24,13 @@ export class ClaudeAgentAdapter implements LLMAdapter {
         model: options.model ?? this.config.defaultModel,
         allowedTools: this.config.allowedTools ?? [],
         permissionMode: "acceptEdits",
+        ...(this.config.cliPath ? { pathToClaudeCodeExecutable: this.config.cliPath } : {}),
+        ...(options.maxAgentTurns != null ? { maxTurns: options.maxAgentTurns } : {}),
       },
     })) {
       if (message.type === "result") {
         if (message.subtype === "success") {
-          finalText = message.result;
+          resultChunks.push(message.result);
         } else {
           const err =
             "errors" in message && message.errors.length
@@ -39,6 +41,6 @@ export class ClaudeAgentAdapter implements LLMAdapter {
       }
     }
 
-    return { content: finalText };
+    return { content: resultChunks.join("") };
   }
 }

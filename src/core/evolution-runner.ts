@@ -29,16 +29,24 @@ export async function runEvolution(
 
   let lastOutput = document;
 
-  for (const step of plan.steps) {
+  const steps =
+    plan.maxSteps != null ? plan.steps.slice(0, plan.maxSteps) : plan.steps;
+
+  for (const step of steps) {
     const adapter = registry.get(step.adapterId);
 
     log(`[EvolveDoc] Step: ${step.adapterId} / ${step.prompt.slice(0, 60)}...`);
 
     history.push({ role: "user", content: step.prompt });
 
+    const maxTokens = step.maxTokens ?? plan.maxTokens;
+    const maxAgentTurns = step.maxAgentTurns ?? plan.maxAgentTurns;
+
     const result = await adapter.run({
       messages: history,
       model: step.model,
+      maxTokens,
+      maxAgentTurns,
     });
 
     lastOutput = result.content;

@@ -8,9 +8,7 @@ const ROLE_LABEL: Record<Message["role"], string> = {
 
 /** Serialize chat history into a single prompt for agent-style adapters (Claude Agent, Codex). */
 export function serializeMessages(messages: Message[]): string {
-  return messages
-    .map((m) => `## ${ROLE_LABEL[m.role]}\n${m.content.trim()}`)
-    .join("\n\n");
+  return messages.map((m) => `## ${ROLE_LABEL[m.role]}\n${m.content}`).join("\n\n");
 }
 
 /** Build OpenAI-style message list; optional system line becomes leading system message. */

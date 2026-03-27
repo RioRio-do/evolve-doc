@@ -25,6 +25,13 @@ export class OpenAICompatAdapter implements LLMAdapter {
   }
 
   async run(options: RunOptions): Promise<RunResult> {
+    const base = this.config.baseUrl ?? "";
+    if (base.includes("api.anthropic.com") || base.includes("anthropic.com/v1")) {
+      throw new Error(
+        "openai-compat targets OpenAI Chat Completions-compatible APIs only. Anthropic Messages API is not supported here — use adapter type \"claude-agent\" instead."
+      );
+    }
+
     const messages = buildOpenAIMessages(options.messages, options.systemPrompt);
 
     const response = await this.client.chat.completions.create({
